@@ -442,7 +442,10 @@ public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase {
             if(!softHammerItem.damageItem(DamageValues.DAMAGE_FOR_SOFT_HAMMER, false)) {
                 return false;
             }
-
+            if (this.currentTemperature >= BOILING_TEMPERATURE) {
+                playerIn.sendMessage(new TextComponentTranslation("gregtech.multiblock.large_boiler.message_throttle_too_hot"));
+                return false;
+            }
             setNextThrottle();
             playerIn.sendMessage(new TextComponentTranslation("gregtech.multiblock.large_boiler.message_throttle_change",
                 this.throttlePercentage * 100));
