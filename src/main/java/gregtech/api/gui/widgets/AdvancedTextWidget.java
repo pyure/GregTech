@@ -73,7 +73,9 @@ public class AdvancedTextWidget extends Widget {
 
     @SideOnly(Side.CLIENT)
     private void resizeWrapScreen() {
-        this.wrapScreen.get().setWorldAndResolution(Minecraft.getMinecraft(), sizes.getScreenWidth(), sizes.getScreenHeight());
+        if (sizes != null) {
+            this.wrapScreen.get().setWorldAndResolution(Minecraft.getMinecraft(), sizes.getScreenWidth(), sizes.getScreenHeight());
+        }
     }
 
     @Override
@@ -144,8 +146,9 @@ public class AdvancedTextWidget extends Widget {
     @SideOnly(Side.CLIENT)
     private void formatDisplayText() {
         FontRenderer fontRenderer = Minecraft.getMinecraft().fontRenderer;
+        int maxTextWidthResult = maxWidthLimit == 0 ? Integer.MAX_VALUE : maxWidthLimit;
         this.displayText = displayText.stream()
-            .flatMap(c -> GuiUtilRenderComponents.splitText(c, maxWidthLimit, fontRenderer, true, true).stream())
+            .flatMap(c -> GuiUtilRenderComponents.splitText(c, maxTextWidthResult, fontRenderer, true, true).stream())
             .collect(Collectors.toList());
     }
 
