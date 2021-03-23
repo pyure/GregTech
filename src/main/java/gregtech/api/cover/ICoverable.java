@@ -114,6 +114,9 @@ public interface ICoverable {
     }
 
     static boolean doesCoverCollide(EnumFacing side, List<IndexedCuboid6> collisionBox, double plateThickness) {
+        if (side == null) {
+            return false;
+        }
         if (plateThickness > 0.0) {
             Cuboid6 coverPlateBox = getCoverPlateBox(side, plateThickness);
             for (Cuboid6 collisionCuboid : collisionBox) {
@@ -164,7 +167,7 @@ public interface ICoverable {
             } else if(rayTraceResult.cuboid6.data instanceof PrimaryBoxData) {
                 PrimaryBoxData primaryBoxData = (PrimaryBoxData) rayTraceResult.cuboid6.data;
                 return primaryBoxData.usePlacementGrid ? determineGridSideHit(result) : result.sideHit;
-            } else return null; //unknown hit type, return null
+            } //unknown hit type, fall through
         }
         //normal collision ray trace, return side hit
         return determineGridSideHit(result);

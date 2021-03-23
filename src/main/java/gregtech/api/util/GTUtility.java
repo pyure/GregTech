@@ -1,6 +1,5 @@
 package gregtech.api.util;
 
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.Lists;
@@ -24,7 +23,6 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Items;
 import net.minecraft.inventory.Slot;
-import net.minecraft.item.EnumDyeColor;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -52,12 +50,10 @@ import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.IItemHandlerModifiable;
 
 import javax.annotation.Nullable;
-import java.awt.*;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.util.List;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.function.Function;
@@ -126,27 +122,6 @@ public class GTUtility {
         return potionEffect;
     }
 
-    /**
-     * Determines dye color nearest to specified RGB color
-     */
-    public static EnumDyeColor determineDyeColor(int rgbColor) {
-        Color c = new Color(rgbColor);
-
-        Map<Double, EnumDyeColor> distances = new HashMap<>();
-        for (EnumDyeColor dyeColor : EnumDyeColor.values()) {
-            Color c2 = new Color(dyeColor.colorValue);
-
-            double distance = (c.getRed() - c2.getRed()) * (c.getRed() - c2.getRed())
-                + (c.getGreen() - c2.getGreen()) * (c.getGreen() - c2.getGreen())
-                + (c.getBlue() - c2.getBlue()) * (c.getBlue() - c2.getBlue());
-
-            distances.put(distance, dyeColor);
-        }
-
-        double min = Collections.min(distances.keySet());
-        return distances.get(min);
-    }
-
     //just because CCL uses a different color format
     //0xRRGGBBAA
     public static int convertRGBtoOpaqueRGBA_CL(int colorValue) {
@@ -154,18 +129,24 @@ public class GTUtility {
     }
 
     public static int convertRGBtoRGBA_CL(int colorValue, int opacity) {
-        int r = (colorValue >> 16) & 0xFF;
-        int g = (colorValue >> 8) & 0xFF;
-        int b = (colorValue & 0xFF);
-        return (r & 0xFF) << 24 | (g & 0xFF) << 16 | (b & 0xFF) << 8 | (opacity & 0xFF);
+        return colorValue << 8 | (opacity & 0xFF);
+    }
+
+    public static int convertOpaqueRGBA_CLtoRGB(int colorAlpha) {
+        return colorAlpha >>> 8;
     }
 
     //0xAARRGGBB
     public static int convertRGBtoOpaqueRGBA_MC(int colorValue) {
-        int r = (colorValue >> 16) & 0xFF;
-        int g = (colorValue >> 8) & 0xFF;
-        int b = (colorValue & 0xFF);
-        return 0xFF << 24 | (r & 0xFF) << 16 | (g & 0xFF) << 8 | (b & 0xFF);
+        return convertRGBtoOpaqueRGBA_MC(colorValue, 255);
+    }
+
+    public static int convertRGBtoOpaqueRGBA_MC(int colorValue, int opacity) {
+        return opacity << 24 | colorValue;
+    }
+
+    public static int convertOpaqueRGBA_MCtoRGB(int alphaColor) {
+        return alphaColor & 0xFFFFFF;
     }
 
     public static void setItem(ItemStack itemStack, ItemStack newStack) {
@@ -410,7 +391,7 @@ public class GTUtility {
                 return (byte) Math.max(0, tier - 1);
             }
         }
-        return tier;
+        return (byte) Math.min(V.length -1, tier);
     }
 
     public static BiomeDictionary.Type getBiomeTypeTagByName(String name) {
@@ -569,7 +550,9 @@ public class GTUtility {
 
     public static List<EntityPlayerMP> findPlayersUsing(MetaTileEntity metaTileEntity, double radius) {
         ArrayList<EntityPlayerMP> result = new ArrayList<>();
-        AxisAlignedBB box = new AxisAlignedBB(metaTileEntity.getPos()).expand(radius, radius, radius);
+        AxisAlignedBB box = new AxisAlignedBB(metaTileEntity.getPos())
+            .expand(radius, radius, radius)
+            .expand(-radius, -radius, -radius);
         List<EntityPlayerMP> entities = metaTileEntity.getWorld().getEntitiesWithinAABB(EntityPlayerMP.class, box);
         for (EntityPlayerMP player : entities) {
             if (player.openContainer instanceof ModularUIContainer) {
@@ -725,6 +708,6 @@ public class GTUtility {
             .thenComparing(ItemStack::getItemDamage)
             .thenComparing(ItemStack::hasTagCompound)
             .thenComparing(it -> -Objects.hashCode(it.getTagCompound()))
-            .thenComparing(ItemStack::getCount);
+            .thenComparing(it -> -it.getCount());
     }
 }

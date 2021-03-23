@@ -27,7 +27,7 @@ public class RecipeMapGroupOutput extends RecipeMap<SimpleRecipeBuilder> impleme
     @Override
     public Builder createUITemplate(DoubleSupplier progressSupplier, IItemHandlerModifiable importItems, IItemHandlerModifiable exportItems, FluidTankList importFluids, FluidTankList exportFluids) {
         ModularUI.Builder builder = ModularUI.defaultBuilder();
-        builder.widget(new ProgressWidget(progressSupplier, 77, 22, 20, 20, progressBarTexture, moveType));
+        builder.widget(new ProgressWidget(progressSupplier, 77, 22, 21, 20, progressBarTexture, moveType));
         addInventorySlotGroup(builder, importItems, importFluids, false);
         BooleanWrapper booleanWrapper = new BooleanWrapper();
         ServerWidgetGroup itemOutputGroup = createItemOutputWidgetGroup(exportItems, new ServerWidgetGroup(() -> !booleanWrapper.getCurrentMode()));
@@ -92,7 +92,7 @@ public class RecipeMapGroupOutput extends RecipeMap<SimpleRecipeBuilder> impleme
                 int slotIndex = i * itemSlotsToLeft + j;
                 int x = startInputsX + 18 * j;
                 int y = startInputsY + 18 * i;
-                widgetGroup.addWidget(new TankWidget(fluidHandler.getTankAt(slotIndex), x - 1, y - 1, 18, 18)
+                widgetGroup.addWidget(new TankWidget(fluidHandler.getTankAt(slotIndex), x, y, 18, 18)
                     .setAlwaysShowFull(true)
                     .setBackgroundTexture(getOverlaysForSlot(true, true, false))
                     .setContainerClicking(true, false));

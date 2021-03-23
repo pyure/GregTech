@@ -7,6 +7,7 @@ import crafttweaker.api.liquid.ILiquidStack;
 import crafttweaker.api.minecraft.CraftTweakerMC;
 import gregtech.api.recipes.CountableIngredient;
 import gregtech.api.recipes.RecipeBuilder;
+import gregtech.api.recipes.ingredients.IntCircuitIngredient;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.crafting.Ingredient;
 import stanhebben.zenscript.annotations.ZenClass;
@@ -58,6 +59,12 @@ public class CTRecipeBuilder {
         return this;
     }
 
+    @ZenMethod
+    public CTRecipeBuilder circuit(int num) {
+        this.backingBuilder.notConsumable(CraftTweakerIngredientWrapper.fromStacks(IntCircuitIngredient.getIntegratedCircuit(num)));
+        return this;
+    }
+
     //note that fluid input predicates are not supported
     @ZenMethod
     public CTRecipeBuilder fluidInputs(ILiquidStack... ingredients) {
@@ -96,6 +103,17 @@ public class CTRecipeBuilder {
             throw new IllegalArgumentException("Property " +
                 key + " cannot be applied to recipe type " +
                 backingBuilder.getClass().getSimpleName());
+        }
+        return this;
+    }
+
+    @ZenMethod
+    public CTRecipeBuilder property(String key, IItemStack item) {
+        boolean applied = this.backingBuilder.applyProperty(key, CraftTweakerMC.getItemStack(item));
+        if (!applied) {
+            throw new IllegalArgumentException("Property " +
+                key + " cannot be applied to recipe type " +
+                backingBuilder.getClass().getSimpleName() + " for Item " + CraftTweakerMC.getItemStack(item).getDisplayName());
         }
         return this;
     }

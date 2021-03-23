@@ -66,7 +66,7 @@ public class OreRecipeHandler {
     public static void processOre(OrePrefix orePrefix, DustMaterial material) {
         DustMaterial byproductMaterial = GTUtility.selectItemInList(0, material, material.oreByProducts, DustMaterial.class);
         ItemStack byproductStack = OreDictUnifier.get(OrePrefix.dust, byproductMaterial);
-        ItemStack crushedStack = OreDictUnifier.get(OrePrefix.crushed, material);
+        ItemStack crushedStack = OreDictUnifier.get(OrePrefix.crushed, material.crushedInto);
         ItemStack ingotStack;
         DustMaterial smeltingMaterial = material.directSmelting == null ? material : material.directSmelting;
         double amountOfCrushedOre = material.oreMultiplier / getPercentOfComponentInMaterial(material, smeltingMaterial);
@@ -102,7 +102,7 @@ public class OreRecipeHandler {
         }
 
         //do not try to add smelting recipes for materials which require blast furnace
-        if (!ingotStack.isEmpty() && doesMaterialUseNormalFurnace(smeltingMaterial)) {
+        if (!ingotStack.isEmpty() && doesMaterialUseNormalFurnace(smeltingMaterial) && !material.disableDirectSmelting) {
             ModHandler.addSmeltingRecipe(new UnificationEntry(orePrefix, material), ingotStack);
         }
     }
@@ -169,7 +169,7 @@ public class OreRecipeHandler {
             DustMaterial washingByproduct = GTUtility.selectItemInList(3, material, material.oreByProducts, DustMaterial.class);
             RecipeMaps.CHEMICAL_BATH_RECIPES.recipeBuilder()
                 .input(crushedPrefix, material)
-                .fluidInputs(material.washedIn.getFluid(1000))
+                .fluidInputs(material.washedIn.getFluid(material.washedIn == Materials.SodiumPersulfate ? 100 : 1000))
                 .outputs(crushedPurifiedOre)
                 .chancedOutput(OreDictUnifier.get(OrePrefix.dust, washingByproduct, material.byProductMultiplier), 7000, 580)
                 .chancedOutput(OreDictUnifier.get(OrePrefix.dust, Materials.Stone), 4000, 650)

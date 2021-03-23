@@ -1,5 +1,6 @@
 package gregtech.common.metatileentities.storage;
 
+import codechicken.lib.colour.ColourRGBA;
 import codechicken.lib.raytracer.CuboidRayTraceResult;
 import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.ColourMultiplier;
@@ -22,6 +23,7 @@ import gregtech.api.unification.material.type.SolidMaterial;
 import gregtech.api.util.ByteBufUtils;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.WatchedFluidTank;
+import gregtech.common.ConfigHolder;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.creativetab.CreativeTabs;
@@ -57,6 +59,8 @@ import org.apache.commons.lang3.tuple.Pair;
 import javax.annotation.Nullable;
 import java.lang.ref.WeakReference;
 import java.util.*;
+
+import static gregtech.api.util.GTUtility.convertOpaqueRGBA_CLtoRGB;
 
 public class MetaTileEntityTank extends MetaTileEntity implements IFastRenderMetaTileEntity {
 
@@ -97,7 +101,13 @@ public class MetaTileEntityTank extends MetaTileEntity implements IFastRenderMet
                 MetaTileEntityTank.this.onFluidChangedInternal();
             }
         };
-        initializeInventory();
+        this.fluidInventory = getActualFluidTank();
+    }
+
+    @Override
+    public void onLoad() {
+        super.onLoad();
+        this.recheckBlockedSides();
     }
 
     @Override
@@ -145,6 +155,7 @@ public class MetaTileEntityTank extends MetaTileEntity implements IFastRenderMet
     protected void onCoverPlacementUpdate() {
         super.onCoverPlacementUpdate();
         this.needsCoversUpdate = true;
+        setTankController(null);
     }
 
     @Override
@@ -264,7 +275,6 @@ public class MetaTileEntityTank extends MetaTileEntity implements IFastRenderMet
 
     private void removeTankFromMultiblock(MetaTileEntityTank removedTank) {
         int fluidInTank = getFluidStoredInTank(removedTank.getPos());
-        this.connectedTanks.remove(removedTank.getPos());
         this.needsShapeResync = true;
         removedTank.setTankControllerInternal(null);
         FluidStack fluidStack = multiblockFluidTank.getFluid();
@@ -274,6 +284,7 @@ public class MetaTileEntityTank extends MetaTileEntity implements IFastRenderMet
             removedTank.multiblockFluidTank.fill(fillStack, true);
             this.multiblockFluidTank.drain(fillStack, true);
         }
+        this.connectedTanks.remove(removedTank.getPos());
         recomputeTankSize();
     }
 
@@ -294,8 +305,7 @@ public class MetaTileEntityTank extends MetaTileEntity implements IFastRenderMet
 
     private void recomputeTankSizeNow(boolean allowShrinking) {
         int newCapacity = (connectedTanks.size() + 1) * tankSize;
-        int resultCapacity = allowShrinking ? newCapacity : Math.max(multiblockFluidTank.getCapacity(), newCapacity);
-        this.multiblockFluidTank.setCapacity(resultCapacity);
+        this.multiblockFluidTank.setCapacity(newCapacity);
         if (allowShrinking && multiblockFluidTank.getFluid() != null &&
             multiblockFluidTank.getFluidAmount() > multiblockFluidTank.getCapacity()) {
             multiblockFluidTank.getFluid().amount = multiblockFluidTank.getCapacity();
@@ -469,7 +479,7 @@ public class MetaTileEntityTank extends MetaTileEntity implements IFastRenderMet
     @Override
     public void getSubItems(CreativeTabs creativeTab, NonNullList<ItemStack> subItems) {
         super.getSubItems(creativeTab, subItems);
-        if (creativeTab == CreativeTabs.SEARCH) {
+        if (creativeTab == CreativeTabs.SEARCH && !ConfigHolder.hideFilledTanksInJEI) {
             DefaultSubItemHandler.addFluidContainerVariants(getStackForm(), subItems);
         }
     }
@@ -477,6 +487,26 @@ public class MetaTileEntityTank extends MetaTileEntity implements IFastRenderMet
     @Override
     public ICapabilityProvider initItemStackCapabilities(ItemStack itemStack) {
         return new FluidHandlerItemStack(itemStack, tankSize) {
+            @Override
+            public FluidStack drain(FluidStack resource, boolean doDrain) {
+                FluidStack drained = super.drain(resource, doDrain);
+                this.removeTagWhenEmptied(doDrain);
+                return drained;
+            }
+
+            @Override
+            public FluidStack drain(int maxDrain, boolean doDrain) {
+                FluidStack drained = super.drain(maxDrain, doDrain);
+                this.removeTagWhenEmptied(doDrain);
+                return drained;
+            }
+
+            private void removeTagWhenEmptied(boolean doDrain) {
+                if (doDrain && this.getFluid() == null) {
+                    this.container.setTagCompound(null);
+                }
+            }
+
             @Override
             public boolean canFillFluidType(FluidStack fluid) {
                 return MetaTileEntityTank.this.canFillFluidType(fluid);
@@ -576,18 +606,19 @@ public class MetaTileEntityTank extends MetaTileEntity implements IFastRenderMet
 
     @SideOnly(Side.CLIENT)
     private TankRenderer getTankRenderer() {
-        if(ModHandler.isMaterialWood(material)) {
+        if (ModHandler.isMaterialWood(material)) {
             return Textures.WOODEN_TANK;
         } else return Textures.METAL_TANK;
     }
 
     @SideOnly(Side.CLIENT)
     private int getActualPaintingColor() {
-        int paintingColor = getPaintingColorForRendering();
-        if (paintingColor == DEFAULT_PAINTING_COLOR) {
-            return material.materialRGB;
-        }
-        return paintingColor;
+        int color = ColourRGBA.multiply(
+            GTUtility.convertRGBtoOpaqueRGBA_CL(material.materialRGB),
+            GTUtility.convertRGBtoOpaqueRGBA_CL(getPaintingColorForRendering())
+        );
+        color = convertOpaqueRGBA_CLtoRGB(color);
+        return color;
     }
 
     @Override
@@ -647,7 +678,7 @@ public class MetaTileEntityTank extends MetaTileEntity implements IFastRenderMet
         if (tagCompound != null && tagCompound.hasKey("Fluid", NBT.TAG_COMPOUND)) {
             FluidStack fluidStack = FluidStack.loadFluidStackFromNBT(tagCompound.getCompoundTag("Fluid"));
             if (fluidStack != null) {
-                tooltip.add(I18n.format("gregtech.machine.fluid_tank.fluid", fluidStack.amount, I18n.format(fluidStack.getUnlocalizedName())));
+                tooltip.add(I18n.format("gregtech.machine.fluid_tank.fluid", fluidStack.amount, fluidStack.getLocalizedName()));
             }
         }
     }
@@ -715,7 +746,8 @@ public class MetaTileEntityTank extends MetaTileEntity implements IFastRenderMet
             this.needsShapeResync = false;
         }
         if (networkStatus == NetworkStatus.DETACHED_FROM_MULTIBLOCK) {
-            writeCustomData(2, buf -> {});
+            writeCustomData(2, buf -> {
+            });
             this.networkStatus = null;
         }
         if (isTankController() && needsShapeResync) {
@@ -749,7 +781,8 @@ public class MetaTileEntityTank extends MetaTileEntity implements IFastRenderMet
         Stack<EnumFacing> moveStack = new Stack<>();
         int currentAmount = 0;
         int scanSizeLimit = tank.maxSizeHorizontal * tank.maxSizeHorizontal * tank.maxSizeVertical * 4;
-        main: while (true) {
+        main:
+        while (true) {
             if (currentAmount >= scanSizeLimit) {
                 break;
             }

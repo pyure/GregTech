@@ -84,7 +84,7 @@ public enum OrePrefix {
     springSmall("Small Springs", M / 4, null, MaterialIconType.springSmall, ENABLE_UNIFICATION, mat -> mat instanceof IngotMaterial && mat.hasFlag(GENERATE_SPRING_SMALL) && !mat.hasFlag(NO_SMASHING)), // consisting out of 1 Fine Wire.
     spring("Springs", M, null, MaterialIconType.spring, ENABLE_UNIFICATION, mat -> mat instanceof IngotMaterial && mat.hasFlag(GENERATE_SPRING) && !mat.hasFlag(NO_SMASHING)), // consisting out of 2 Sticks.
     wireFine("Fine Wires", M / 8, null, MaterialIconType.wireFine, ENABLE_UNIFICATION, mat -> mat instanceof IngotMaterial && mat.hasFlag(GENERATE_FINE_WIRE)), // consisting out of 1/8 Ingot or 1/4 Wire.
-    rotor("Rotors", M * 4 + M / 4, null, MaterialIconType.rotor, ENABLE_UNIFICATION, mat -> mat instanceof IngotMaterial && mat.hasFlag(GENERATE_ROTOR)), // consisting out of 4 Plates, 1 Ring and 1 Screw.
+    rotor("Rotors", M * 4, null, MaterialIconType.rotor, ENABLE_UNIFICATION, mat -> mat instanceof IngotMaterial && mat.hasFlag(GENERATE_ROTOR)), // consisting out of 4 Plates, 1 Ring and 1 Screw.
     gearSmall("Small Gears", M, null, MaterialIconType.gearSmall, ENABLE_UNIFICATION, mat -> mat instanceof IngotMaterial && mat.hasFlag(GENERATE_SMALL_GEAR)),
     gear("Gears", M * 4, null, MaterialIconType.gear, ENABLE_UNIFICATION, mat -> mat instanceof SolidMaterial && mat.hasFlag(GENERATE_GEAR)), // Introduced by me because BuildCraft has ruined the gear Prefix...
     lens("Lenses", (M * 3) / 4, null, MaterialIconType.lens, ENABLE_UNIFICATION, mat -> mat instanceof GemMaterial && mat.hasFlag(GENERATE_LENSE)), // 3/4 of a Plate or Gem used to shape a Lense. Normally only used on Transparent Materials.
@@ -179,7 +179,7 @@ public enum OrePrefix {
         gemExquisite.maxStackSize = 16;
 
         plateDense.maxStackSize = 8;
-        rotor.maxStackSize = 32;
+        rotor.maxStackSize = 64;
         gear.maxStackSize = 16;
 
         toolHeadSword.maxStackSize = 16;
@@ -209,8 +209,8 @@ public enum OrePrefix {
         gem.setIgnored(Materials.Emerald);
         gem.setIgnored(Materials.Lapis);
         gem.setIgnored(Materials.NetherQuartz);
-
         gem.setIgnored(Materials.Coal);
+
         excludeAllGems(Materials.Charcoal);
         excludeAllGems(Materials.NetherStar);
         excludeAllGems(Materials.EnderPearl);
@@ -221,15 +221,19 @@ public enum OrePrefix {
         dust.setIgnored(Materials.Glowstone);
         dust.setIgnored(Materials.Gunpowder);
         dust.setIgnored(Materials.Sugar);
+        dust.setIgnored(Materials.Bone);
         dust.setIgnored(Materials.Blaze);
+
         stick.setIgnored(Materials.Wood);
         stick.setIgnored(Materials.Bone);
         stick.setIgnored(Materials.Blaze);
         stick.setIgnored(Materials.Paper);
+
         ingot.setIgnored(Materials.Iron);
         ingot.setIgnored(Materials.Gold);
         ingot.setIgnored(Materials.Wood);
         ingot.setIgnored(Materials.Paper);
+
         nugget.setIgnored(Materials.Wood);
         nugget.setIgnored(Materials.Gold);
         nugget.setIgnored(Materials.Paper);
@@ -356,6 +360,11 @@ public enum OrePrefix {
                 material == Materials.Ice ||
                 material == Materials.Obsidian)
                 return M;
+        } else if (this == stick) {
+            if (material == Materials.Blaze)
+                return M * 4;
+            else if (material == Materials.Bone)
+                return M * 5;
         }
         return materialAmount;
     }

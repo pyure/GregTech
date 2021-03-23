@@ -1,6 +1,5 @@
 package gregtech.loaders.oreprocessing;
 
-import com.google.common.collect.ImmutableMap;
 import gregtech.api.GTValues;
 import gregtech.api.items.OreDictNames;
 import gregtech.api.recipes.ModHandler;
@@ -20,17 +19,20 @@ import net.minecraft.item.EnumDyeColor;
 import net.minecraft.item.ItemStack;
 import org.apache.commons.lang3.ArrayUtils;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import static gregtech.api.GTValues.M;
 
 public class WireRecipeHandler {
 
-    private static final Map<FluidMaterial, Integer> INSULATION_MATERIALS = ImmutableMap.of(
-        Materials.Rubber, GTValues.HV,
-        Materials.StyreneButadieneRubber, GTValues.LuV,
-        Materials.SiliconeRubber, GTValues.MAX
-    );
+    public static final Map<FluidMaterial, Integer> INSULATION_MATERIALS = new HashMap<>();
+
+    static {
+        INSULATION_MATERIALS.put(Materials.Rubber, GTValues.HV);
+        INSULATION_MATERIALS.put(Materials.StyreneButadieneRubber, GTValues.LuV);
+        INSULATION_MATERIALS.put(Materials.SiliconeRubber, GTValues.MAX);
+    }
 
     public static void register() {
         OrePrefix.wireGtSingle.addProcessingHandler(IngotMaterial.class, WireRecipeHandler::processWireSingle);
@@ -38,10 +40,18 @@ public class WireRecipeHandler {
             wirePrefix.addProcessingHandler(IngotMaterial.class, WireRecipeHandler::generateWireRecipe);
             wirePrefix.addProcessingHandler(Material.class, WireRecipeHandler::generateWireCombiningRecipe);
         }
+
+        for (OrePrefix cablePrefix : CABLE_DOUBLING_ORDER) {
+            cablePrefix.addProcessingHandler(Material.class, WireRecipeHandler::generateCableCombiningRecipe);
+        }
     }
 
     private static final OrePrefix[] WIRE_DOUBLING_ORDER = new OrePrefix[]{
         OrePrefix.wireGtSingle, OrePrefix.wireGtDouble, OrePrefix.wireGtQuadruple, OrePrefix.wireGtOctal, OrePrefix.wireGtHex
+    };
+
+    private static final OrePrefix[] CABLE_DOUBLING_ORDER = new OrePrefix[]{
+        OrePrefix.cableGtSingle, OrePrefix.cableGtDouble, OrePrefix.cableGtQuadruple, OrePrefix.cableGtOctal, OrePrefix.cableGtHex
     };
 
     public static void processWireSingle(OrePrefix wirePrefix, IngotMaterial material) {
@@ -132,6 +142,41 @@ public class WireRecipeHandler {
             ModHandler.addShapelessRecipe(String.format("%s_wire_%s_splitting", material, wirePrefix),
                 OreDictUnifier.get(WIRE_DOUBLING_ORDER[wireIndex - 1], material, 2),
                 new UnificationEntry(wirePrefix, material));
+        }
+
+        if (wireIndex < 3) {
+            ModHandler.addShapelessRecipe(String.format("%s_wire_%s_quadrupling", material, wirePrefix),
+                OreDictUnifier.get(WIRE_DOUBLING_ORDER[wireIndex + 2], material),
+                new UnificationEntry(wirePrefix, material),
+                new UnificationEntry(wirePrefix, material),
+                new UnificationEntry(wirePrefix, material),
+                new UnificationEntry(wirePrefix, material));
+        }
+    }
+
+    public static void generateCableCombiningRecipe(OrePrefix cablePrefix, Material material) {
+        int cableIndex = ArrayUtils.indexOf(CABLE_DOUBLING_ORDER, cablePrefix);
+
+        if (cableIndex < CABLE_DOUBLING_ORDER.length - 1) {
+            ModHandler.addShapelessRecipe(String.format("%s_cable_%s_doubling", material, cablePrefix),
+                OreDictUnifier.get(CABLE_DOUBLING_ORDER[cableIndex + 1], material),
+                new UnificationEntry(cablePrefix, material),
+                new UnificationEntry(cablePrefix, material));
+        }
+
+        if (cableIndex > 0) {
+            ModHandler.addShapelessRecipe(String.format("%s_cable_%s_splitting", material, cablePrefix),
+                OreDictUnifier.get(CABLE_DOUBLING_ORDER[cableIndex - 1], material, 2),
+                new UnificationEntry(cablePrefix, material));
+        }
+
+        if (cableIndex < 3) {
+            ModHandler.addShapelessRecipe(String.format("%s_cable_%s_quadrupling", material, cablePrefix),
+                OreDictUnifier.get(CABLE_DOUBLING_ORDER[cableIndex + 2], material),
+                new UnificationEntry(cablePrefix, material),
+                new UnificationEntry(cablePrefix, material),
+                new UnificationEntry(cablePrefix, material),
+                new UnificationEntry(cablePrefix, material));
         }
     }
 

@@ -36,7 +36,9 @@ public class MetaTileEntityFluidHatch extends MetaTileEntityMultiblockPart imple
 
     private static final int INITIAL_INVENTORY_SIZE = 8000;
     private ItemStackHandler containerInventory;
+    private FluidTankList fluidTankHandler;
     private boolean isExportHatch;
+
 
     public MetaTileEntityFluidHatch(ResourceLocation metaTileEntityId, int tier, boolean isExportHatch) {
         super(metaTileEntityId, tier);
@@ -73,8 +75,8 @@ public class MetaTileEntityFluidHatch extends MetaTileEntityMultiblockPart imple
     public void update() {
         super.update();
         if (!getWorld().isRemote) {
+            fillContainerFromInternalTank(containerInventory, containerInventory, 0, 1);
             if (isExportHatch) {
-                fillContainerFromInternalTank(containerInventory, containerInventory, 0, 1);
                 pushFluidsIntoNearbyHandlers(getFrontFacing());
             } else {
                 fillInternalTankFromFluidContainer(containerInventory, containerInventory, 0, 1);
@@ -97,13 +99,13 @@ public class MetaTileEntityFluidHatch extends MetaTileEntityMultiblockPart imple
     }
 
     @Override
-    protected FluidTankList createImportFluidHandler() {
-        return isExportHatch ? new FluidTankList(false) : new FluidTankList(false, new FluidTank(getInventorySize()));
-    }
-
-    @Override
-    protected FluidTankList createExportFluidHandler() {
-        return isExportHatch ? new FluidTankList(false, new FluidTank(getInventorySize())) : new FluidTankList(false);
+    protected void initializeInventory() {
+        super.initializeInventory();
+        FluidTank fluidTank = new FluidTank(getInventorySize());
+        this.fluidTankHandler = new FluidTankList(false, fluidTank);
+        this.exportFluids = fluidTankHandler;
+        this.importFluids = isExportHatch ? new FluidTankList(false) : fluidTankHandler;
+        this.fluidInventory = fluidTankHandler;
     }
 
     @Override
@@ -132,7 +134,7 @@ public class MetaTileEntityFluidHatch extends MetaTileEntityMultiblockPart imple
         builder.dynamicLabel(11, 30, tankWidget::getFormattedFluidAmount, 0xFFFFFF);
         builder.dynamicLabel(11, 40, tankWidget::getFluidLocalizedName, 0xFFFFFF);
         return builder.label(6, 6, title)
-            .widget(new FluidContainerSlotWidget(containerInventory, 0, 90, 17, !isExportHatch)
+            .widget(new FluidContainerSlotWidget(containerInventory, 0, 90, 17, false)
                 .setBackgroundTexture(GuiTextures.SLOT, GuiTextures.IN_SLOT_OVERLAY))
             .widget(new ImageWidget(91, 36, 14, 15, GuiTextures.TANK_ICON))
             .widget(new SlotWidget(containerInventory, 1, 90, 54, true, false)
